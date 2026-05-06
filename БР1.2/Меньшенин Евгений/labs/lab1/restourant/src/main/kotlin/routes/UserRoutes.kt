@@ -10,6 +10,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -124,6 +125,32 @@ fun Route.userRoutes() {
                 }
 
                 call.respond(user)
+            }
+
+            delete("/{id}") {
+                val currentUserId = call.principalUserId()!!
+                val currentUserRole = call.principalUserRole() ?: ""
+
+                val id = call.parameters["id"]?.toIntOrNull() ?: run {
+                    call.respond(HttpStatusCode.BadRequest, ErrorResponse("Invalid id"))
+                    return@delete
+                }
+
+                if (currentUserId != id && currentUserRole != "admin") {
+                    call.respond(HttpStatusCode.Forbidden, ErrorResponse("Access denied"))
+                    return@delete
+                }
+
+                val deleted = transaction {
+                    Users.deleteWhere { Users.id eq id }
+                }
+
+                if (deleted == 0) {
+                    call.respond(HttpStatusCode.NotFound, ErrorResponse("User not found"))
+                    return@delete
+                }
+
+                call.respond(HttpStatusCode.NoContent)
             }
 
             patch("/{id}") {

@@ -134,6 +134,24 @@ paths:
           description: Доступ запрещен
         '404':
           description: Пользователь не найден
+    delete:
+      summary: Удаление пользователя
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Пользователь удален
+        '403':
+          description: Доступ запрещен
+        '404':
+          description: Пользователь не найден
 
   /api/restaurants:
     get:
