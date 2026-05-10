@@ -12,6 +12,7 @@ import io.ktor.server.routing.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
@@ -23,7 +24,7 @@ fun Route.userRoutes() {
             val request = call.receive<RegisterRequest>()
 
             val existing = transaction {
-                Users.selectAll().where { Users.email eq request.email }.singleOrNull()
+                Users.select(Users.id).where { Users.email eq request.email }.singleOrNull()
             }
 
             if (existing != null) {
@@ -62,17 +63,26 @@ fun Route.userRoutes() {
 
         authenticate("auth-jwt") {
             get {
+                val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+                val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 50
+
                 val users = transaction {
-                    Users.selectAll().map { row ->
-                        UserResponse(
-                            id = row[Users.id].value,
-                            email = row[Users.email],
-                            firstName = row[Users.firstName],
-                            lastName = row[Users.lastName],
-                            phoneNumber = row[Users.phoneNumber],
-                            role = row[Users.role],
-                        )
-                    }
+                    Users.select(
+                        Users.id, Users.email, Users.firstName,
+                        Users.lastName, Users.phoneNumber, Users.role,
+                    )
+                        .limit(limit)
+                        .offset(((page - 1) * limit).toLong())
+                        .map { row ->
+                            UserResponse(
+                                id = row[Users.id].value,
+                                email = row[Users.email],
+                                firstName = row[Users.firstName],
+                                lastName = row[Users.lastName],
+                                phoneNumber = row[Users.phoneNumber],
+                                role = row[Users.role],
+                            )
+                        }
                 }
                 call.respond(users)
             }
@@ -80,7 +90,10 @@ fun Route.userRoutes() {
             get("/me") {
                 val userId = call.principalUserId()!!
                 val user = transaction {
-                    Users.selectAll().where { Users.id eq userId }.map { row ->
+                    Users.select(
+                        Users.id, Users.email, Users.firstName,
+                        Users.lastName, Users.phoneNumber, Users.role,
+                    ).where { Users.id eq userId }.map { row ->
                         UserResponse(
                             id = row[Users.id].value,
                             email = row[Users.email],
@@ -107,7 +120,10 @@ fun Route.userRoutes() {
                 }
 
                 val user = transaction {
-                    Users.selectAll().where { Users.id eq id }.map { row ->
+                    Users.select(
+                        Users.id, Users.email, Users.firstName,
+                        Users.lastName, Users.phoneNumber, Users.role,
+                    ).where { Users.id eq id }.map { row ->
                         UserResponse(
                             id = row[Users.id].value,
                             email = row[Users.email],
@@ -179,7 +195,10 @@ fun Route.userRoutes() {
                 }
 
                 val user = transaction {
-                    Users.selectAll().where { Users.id eq id }.map { row ->
+                    Users.select(
+                        Users.id, Users.email, Users.firstName,
+                        Users.lastName, Users.phoneNumber, Users.role,
+                    ).where { Users.id eq id }.map { row ->
                         UserResponse(
                             id = row[Users.id].value,
                             email = row[Users.email],

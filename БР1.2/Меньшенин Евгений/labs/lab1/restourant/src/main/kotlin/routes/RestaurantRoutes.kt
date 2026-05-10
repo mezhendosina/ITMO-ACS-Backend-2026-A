@@ -20,10 +20,15 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.patch
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
+import org.jetbrains.exposed.sql.Op
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.greaterEq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.like
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
+import java.math.BigDecimal
 import java.time.LocalDateTime
 
 fun Route.restaurantRoutes() {
@@ -36,28 +41,41 @@ fun Route.restaurantRoutes() {
             val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 20
 
             val restaurants = transaction {
-                val query = Restaurants.selectAll()
-
-                val filtered = query.map { row ->
-                    RestaurantResponse(
-                        id = row[Restaurants.id].value,
-                        name = row[Restaurants.name],
-                        description = row[Restaurants.description],
-                        address = row[Restaurants.address],
-                        phoneNumber = row[Restaurants.phoneNumber],
-                        cuisineType = row[Restaurants.cuisineType],
-                        rating = row[Restaurants.rating].toDouble(),
-                        imageUrl = row[Restaurants.imageUrl],
-                        ownerId = row[Restaurants.ownerId],
-                    )
-                }.filter { r ->
-                    (cuisine == null || r.cuisineType?.contains(cuisine, ignoreCase = true) == true) &&
-                    (location == null || r.address.contains(location, ignoreCase = true)) &&
-                    (minRating == null || r.rating >= minRating)
+                var condition: Op<Boolean> = Op.TRUE
+                if (cuisine != null) {
+                    condition = condition and (Restaurants.cuisineType like "%$cuisine%")
+                }
+                if (location != null) {
+                    condition = condition and (Restaurants.address like "%$location%")
+                }
+                if (minRating != null) {
+                    condition = condition and (Restaurants.rating greaterEq BigDecimal(minRating))
                 }
 
-                val total = filtered.size
-                val paged = filtered.drop((page - 1) * limit).take(limit)
+                val query = Restaurants.select(
+                    Restaurants.id, Restaurants.name, Restaurants.description,
+                    Restaurants.address, Restaurants.phoneNumber, Restaurants.cuisineType,
+                    Restaurants.openingTime, Restaurants.closingTime, Restaurants.rating,
+                    Restaurants.imageUrl, Restaurants.ownerId,
+                ).where(condition)
+
+                val total = query.count().toInt()
+                val paged = query
+                    .limit(limit)
+                    .offset(((page - 1) * limit).toLong())
+                    .map { row ->
+                        RestaurantResponse(
+                            id = row[Restaurants.id].value,
+                            name = row[Restaurants.name],
+                            description = row[Restaurants.description],
+                            address = row[Restaurants.address],
+                            phoneNumber = row[Restaurants.phoneNumber],
+                            cuisineType = row[Restaurants.cuisineType],
+                            rating = row[Restaurants.rating].toDouble(),
+                            imageUrl = row[Restaurants.imageUrl],
+                            ownerId = row[Restaurants.ownerId],
+                        )
+                    }
                 Pair(paged, total)
             }
 
@@ -78,10 +96,19 @@ fun Route.restaurantRoutes() {
             }
 
             val result = transaction {
-                val restaurant = Restaurants.selectAll().where { Restaurants.id eq id }.singleOrNull()
+                val restaurant = Restaurants.select(
+                    Restaurants.id, Restaurants.name, Restaurants.description,
+                    Restaurants.address, Restaurants.phoneNumber, Restaurants.cuisineType,
+                    Restaurants.openingTime, Restaurants.closingTime, Restaurants.rating,
+                    Restaurants.imageUrl, Restaurants.ownerId,
+                ).where { Restaurants.id eq id }.singleOrNull()
                     ?: return@transaction null
 
-                val menu = MenuItems.selectAll().where { MenuItems.restaurantId eq id }.map { row ->
+                val menu = MenuItems.select(
+                    MenuItems.id, MenuItems.restaurantId, MenuItems.name,
+                    MenuItems.description, MenuItems.price, MenuItems.category,
+                    MenuItems.isAvailable,
+                ).where { MenuItems.restaurantId eq id }.map { row ->
                     MenuItemResponse(
                         id = row[MenuItems.id].value,
                         restaurantId = row[MenuItems.restaurantId],
@@ -93,7 +120,10 @@ fun Route.restaurantRoutes() {
                     )
                 }
 
-                val reviews = Reviews.selectAll().where { Reviews.restaurantId eq id }.map { row ->
+                val reviews = Reviews.select(
+                    Reviews.id, Reviews.userId, Reviews.restaurantId,
+                    Reviews.rating, Reviews.comment,
+                ).where { Reviews.restaurantId eq id }.map { row ->
                     ReviewWithUserResponse(
                         id = row[Reviews.id].value,
                         userId = row[Reviews.userId],
@@ -174,7 +204,9 @@ fun Route.restaurantRoutes() {
                 }
 
                 val restaurant = transaction {
-                    Restaurants.selectAll().where { Restaurants.id eq id }.singleOrNull()
+                    Restaurants.select(Restaurants.id, Restaurants.ownerId)
+                        .where { Restaurants.id eq id }
+                        .singleOrNull()
                 }
 
                 if (restaurant == null) {
@@ -204,7 +236,11 @@ fun Route.restaurantRoutes() {
                 }
 
                 val updated = transaction {
-                    Restaurants.selectAll().where { Restaurants.id eq id }.map { row ->
+                    Restaurants.select(
+                        Restaurants.id, Restaurants.name, Restaurants.description,
+                        Restaurants.address, Restaurants.phoneNumber, Restaurants.cuisineType,
+                        Restaurants.rating, Restaurants.imageUrl, Restaurants.ownerId,
+                    ).where { Restaurants.id eq id }.map { row ->
                         RestaurantResponse(
                             id = row[Restaurants.id].value,
                             name = row[Restaurants.name],

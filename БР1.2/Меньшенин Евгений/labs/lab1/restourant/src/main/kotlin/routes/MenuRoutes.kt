@@ -12,7 +12,7 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
 import java.math.BigDecimal
@@ -27,7 +27,11 @@ fun Route.menuRoutes() {
             }
 
             val menuItems = transaction {
-                MenuItems.selectAll().where {
+                MenuItems.select(
+                    MenuItems.id, MenuItems.restaurantId, MenuItems.name,
+                    MenuItems.description, MenuItems.price, MenuItems.category,
+                    MenuItems.isAvailable,
+                ).where {
                     (MenuItems.restaurantId eq restaurantId) and (MenuItems.isAvailable eq true)
                 }.map { row ->
                     MenuItemResponse(
@@ -52,7 +56,11 @@ fun Route.menuRoutes() {
             }
 
             val menuItem = transaction {
-                MenuItems.selectAll().where { MenuItems.id eq id }.map { row ->
+                MenuItems.select(
+                    MenuItems.id, MenuItems.restaurantId, MenuItems.name,
+                    MenuItems.description, MenuItems.price, MenuItems.category,
+                    MenuItems.isAvailable,
+                ).where { MenuItems.id eq id }.map { row ->
                     MenuItemResponse(
                         id = row[MenuItems.id].value,
                         restaurantId = row[MenuItems.restaurantId],
@@ -79,7 +87,9 @@ fun Route.menuRoutes() {
                 val request = call.receive<CreateMenuItemRequest>()
 
                 val restaurant = transaction {
-                    Restaurants.selectAll().where { Restaurants.id eq request.restaurantId }.singleOrNull()
+                    Restaurants.select(Restaurants.id, Restaurants.ownerId)
+                        .where { Restaurants.id eq request.restaurantId }
+                        .singleOrNull()
                 }
 
                 if (restaurant == null) {
@@ -127,7 +137,9 @@ fun Route.menuRoutes() {
                 }
 
                 val menuItem = transaction {
-                    MenuItems.selectAll().where { MenuItems.id eq id }.singleOrNull()
+                    MenuItems.select(MenuItems.id, MenuItems.restaurantId)
+                        .where { MenuItems.id eq id }
+                        .singleOrNull()
                 }
 
                 if (menuItem == null) {
@@ -136,7 +148,9 @@ fun Route.menuRoutes() {
                 }
 
                 val restaurant = transaction {
-                    Restaurants.selectAll().where { Restaurants.id eq menuItem[MenuItems.restaurantId] }.singleOrNull()
+                    Restaurants.select(Restaurants.id, Restaurants.ownerId)
+                        .where { Restaurants.id eq menuItem[MenuItems.restaurantId] }
+                        .singleOrNull()
                 }
 
                 if (restaurant == null || restaurant[Restaurants.ownerId] != userId) {
@@ -158,7 +172,11 @@ fun Route.menuRoutes() {
                 }
 
                 val updated = transaction {
-                    MenuItems.selectAll().where { MenuItems.id eq id }.map { row ->
+                    MenuItems.select(
+                        MenuItems.id, MenuItems.restaurantId, MenuItems.name,
+                        MenuItems.description, MenuItems.price, MenuItems.category,
+                        MenuItems.isAvailable,
+                    ).where { MenuItems.id eq id }.map { row ->
                         MenuItemResponse(
                             id = row[MenuItems.id].value,
                             restaurantId = row[MenuItems.restaurantId],
@@ -182,7 +200,9 @@ fun Route.menuRoutes() {
                 }
 
                 val menuItem = transaction {
-                    MenuItems.selectAll().where { MenuItems.id eq id }.singleOrNull()
+                    MenuItems.select(MenuItems.id, MenuItems.restaurantId)
+                        .where { MenuItems.id eq id }
+                        .singleOrNull()
                 }
 
                 if (menuItem == null) {
@@ -191,7 +211,9 @@ fun Route.menuRoutes() {
                 }
 
                 val restaurant = transaction {
-                    Restaurants.selectAll().where { Restaurants.id eq menuItem[MenuItems.restaurantId] }.singleOrNull()
+                    Restaurants.select(Restaurants.id, Restaurants.ownerId)
+                        .where { Restaurants.id eq menuItem[MenuItems.restaurantId] }
+                        .singleOrNull()
                 }
 
                 if (restaurant == null || restaurant[Restaurants.ownerId] != userId) {

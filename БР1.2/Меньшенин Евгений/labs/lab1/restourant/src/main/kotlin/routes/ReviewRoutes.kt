@@ -9,11 +9,12 @@ import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
 import java.math.BigDecimal
@@ -29,9 +30,15 @@ fun Route.reviewRoutes() {
             }
 
             val reviews = transaction {
-                Reviews.selectAll().where { Reviews.restaurantId eq restaurantId }
+                Reviews.select(
+                    Reviews.id, Reviews.userId, Reviews.restaurantId,
+                    Reviews.rating, Reviews.comment,
+                ).where { Reviews.restaurantId eq restaurantId }
+                    .orderBy(Reviews.id to SortOrder.DESC)
                     .map { row ->
-                        val user = Users.selectAll().where { Users.id eq row[Reviews.userId] }.singleOrNull()
+                        val user = Users.select(Users.firstName, Users.lastName)
+                            .where { Users.id eq row[Reviews.userId] }
+                            .singleOrNull()
                         ReviewWithUserResponse(
                             id = row[Reviews.id].value,
                             userId = row[Reviews.userId],
@@ -41,7 +48,6 @@ fun Route.reviewRoutes() {
                             userName = user?.let { "${it[Users.firstName]} ${it[Users.lastName]}" },
                         )
                     }
-                    .sortedByDescending { it.id }
             }
 
             call.respond(ReviewsListResponse(reviews = reviews))
@@ -54,7 +60,10 @@ fun Route.reviewRoutes() {
             }
 
             val review = transaction {
-                Reviews.selectAll().where { Reviews.id eq id }.map { row ->
+                Reviews.select(
+                    Reviews.id, Reviews.userId, Reviews.restaurantId,
+                    Reviews.rating, Reviews.comment,
+                ).where { Reviews.id eq id }.map { row ->
                     ReviewResponse(
                         id = row[Reviews.id].value,
                         userId = row[Reviews.userId],
@@ -79,7 +88,9 @@ fun Route.reviewRoutes() {
                 val request = call.receive<CreateReviewRequest>()
 
                 val restaurant = transaction {
-                    Restaurants.selectAll().where { Restaurants.id eq request.restaurantId }.singleOrNull()
+                    Restaurants.select(Restaurants.id)
+                        .where { Restaurants.id eq request.restaurantId }
+                        .singleOrNull()
                 }
 
                 if (restaurant == null) {
@@ -93,7 +104,7 @@ fun Route.reviewRoutes() {
                 }
 
                 val existingReview = transaction {
-                    Reviews.selectAll().where {
+                    Reviews.select(Reviews.id).where {
                         (Reviews.userId eq userId) and (Reviews.restaurantId eq request.restaurantId)
                     }.singleOrNull()
                 }
@@ -136,7 +147,7 @@ fun Route.reviewRoutes() {
                 }
 
                 val review = transaction {
-                    Reviews.selectAll().where {
+                    Reviews.select(Reviews.id, Reviews.userId, Reviews.restaurantId, Reviews.rating).where {
                         (Reviews.id eq id) and (Reviews.userId eq userId)
                     }.singleOrNull()
                 }
@@ -168,7 +179,10 @@ fun Route.reviewRoutes() {
                 }
 
                 val updated = transaction {
-                    Reviews.selectAll().where { Reviews.id eq id }.map { row ->
+                    Reviews.select(
+                        Reviews.id, Reviews.userId, Reviews.restaurantId,
+                        Reviews.rating, Reviews.comment,
+                    ).where { Reviews.id eq id }.map { row ->
                         ReviewResponse(
                             id = row[Reviews.id].value,
                             userId = row[Reviews.userId],
@@ -190,7 +204,7 @@ fun Route.reviewRoutes() {
                 }
 
                 val review = transaction {
-                    Reviews.selectAll().where {
+                    Reviews.select(Reviews.id, Reviews.userId, Reviews.restaurantId).where {
                         (Reviews.id eq id) and (Reviews.userId eq userId)
                     }.singleOrNull()
                 }
@@ -216,7 +230,7 @@ fun Route.reviewRoutes() {
 
 private fun updateRestaurantRating(restaurantId: Int) {
     transaction {
-        val reviews = Reviews.selectAll().where { Reviews.restaurantId eq restaurantId }.map { it[Reviews.rating] }
+        val reviews = Reviews.select(Reviews.rating).where { Reviews.restaurantId eq restaurantId }.map { it[Reviews.rating] }
 
         val newRating = if (reviews.isEmpty()) {
             BigDecimal.ZERO

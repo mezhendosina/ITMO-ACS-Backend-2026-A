@@ -18,12 +18,14 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.patch
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
+import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.greaterEq
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.or
-import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
 import java.time.LocalDateTime
@@ -41,7 +43,9 @@ fun Route.tableRoutes() {
             }
 
             val restaurant = transaction {
-                Restaurants.selectAll().where { Restaurants.id eq restaurantId }.singleOrNull()
+                Restaurants.select(
+                    Restaurants.id, Restaurants.openingTime, Restaurants.closingTime,
+                ).where { Restaurants.id eq restaurantId }.singleOrNull()
             }
 
             if (restaurant == null) {
@@ -49,8 +53,16 @@ fun Route.tableRoutes() {
                 return@get
             }
 
-            var tables = transaction {
-                Tables.selectAll().where { Tables.restaurantId eq restaurantId }.map { row ->
+            val tables = transaction {
+                var condition: Op<Boolean> = Tables.restaurantId eq restaurantId
+                if (guests != null) {
+                    condition = condition and (Tables.capacity greaterEq guests)
+                }
+
+                Tables.select(
+                    Tables.id, Tables.restaurantId, Tables.tableNumber,
+                    Tables.capacity, Tables.locationDescription, Tables.isAvailable,
+                ).where(condition).map { row ->
                     TableResponse(
                         id = row[Tables.id].value,
                         restaurantId = row[Tables.restaurantId],
@@ -62,10 +74,6 @@ fun Route.tableRoutes() {
                 }
             }
 
-            if (guests != null) {
-                tables = tables.filter { it.capacity >= guests }
-            }
-
             val tablesWithAvailability = if (date != null) {
                 val tableIds = tables.map { it.id }
                 if (tableIds.isEmpty()) {
@@ -74,7 +82,7 @@ fun Route.tableRoutes() {
                 }
 
                 val bookings = transaction {
-                    Bookings.selectAll().where {
+                    Bookings.select(Bookings.tableId, Bookings.startTime, Bookings.endTime).where {
                         (Bookings.tableId inList tableIds) and
                         (Bookings.bookingDate eq date) and
                         ((Bookings.status eq "confirmed") or (Bookings.status eq "pending"))
@@ -115,7 +123,10 @@ fun Route.tableRoutes() {
             }
 
             val table = transaction {
-                Tables.selectAll().where { Tables.id eq id }.map { row ->
+                Tables.select(
+                    Tables.id, Tables.restaurantId, Tables.tableNumber,
+                    Tables.capacity, Tables.locationDescription, Tables.isAvailable,
+                ).where { Tables.id eq id }.map { row ->
                     TableResponse(
                         id = row[Tables.id].value,
                         restaurantId = row[Tables.restaurantId],
@@ -141,7 +152,9 @@ fun Route.tableRoutes() {
                 val request = call.receive<CreateTableRequest>()
 
                 val restaurant = transaction {
-                    Restaurants.selectAll().where { Restaurants.id eq request.restaurantId }.singleOrNull()
+                    Restaurants.select(Restaurants.id, Restaurants.ownerId)
+                        .where { Restaurants.id eq request.restaurantId }
+                        .singleOrNull()
                 }
 
                 if (restaurant == null) {
@@ -185,7 +198,9 @@ fun Route.tableRoutes() {
                 }
 
                 val table = transaction {
-                    Tables.selectAll().where { Tables.id eq id }.singleOrNull()
+                    Tables.select(Tables.id, Tables.restaurantId)
+                        .where { Tables.id eq id }
+                        .singleOrNull()
                 }
 
                 if (table == null) {
@@ -194,7 +209,9 @@ fun Route.tableRoutes() {
                 }
 
                 val restaurant = transaction {
-                    Restaurants.selectAll().where { Restaurants.id eq table[Tables.restaurantId] }.singleOrNull()
+                    Restaurants.select(Restaurants.id, Restaurants.ownerId)
+                        .where { Restaurants.id eq table[Tables.restaurantId] }
+                        .singleOrNull()
                 }
 
                 if (restaurant == null || restaurant[Restaurants.ownerId] != userId) {
@@ -215,7 +232,10 @@ fun Route.tableRoutes() {
                 }
 
                 val updated = transaction {
-                    Tables.selectAll().where { Tables.id eq id }.map { row ->
+                    Tables.select(
+                        Tables.id, Tables.restaurantId, Tables.tableNumber,
+                        Tables.capacity, Tables.locationDescription, Tables.isAvailable,
+                    ).where { Tables.id eq id }.map { row ->
                         TableResponse(
                             id = row[Tables.id].value,
                             restaurantId = row[Tables.restaurantId],
@@ -238,7 +258,9 @@ fun Route.tableRoutes() {
                 }
 
                 val table = transaction {
-                    Tables.selectAll().where { Tables.id eq id }.singleOrNull()
+                    Tables.select(Tables.id, Tables.restaurantId)
+                        .where { Tables.id eq id }
+                        .singleOrNull()
                 }
 
                 if (table == null) {
@@ -247,7 +269,9 @@ fun Route.tableRoutes() {
                 }
 
                 val restaurant = transaction {
-                    Restaurants.selectAll().where { Restaurants.id eq table[Tables.restaurantId] }.singleOrNull()
+                    Restaurants.select(Restaurants.id, Restaurants.ownerId)
+                        .where { Restaurants.id eq table[Tables.restaurantId] }
+                        .singleOrNull()
                 }
 
                 if (restaurant == null || restaurant[Restaurants.ownerId] != userId) {

@@ -10,7 +10,7 @@ import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 
 fun Route.authRoutes() {
@@ -18,7 +18,8 @@ fun Route.authRoutes() {
         post("/login") {
             val loginRequest = call.receive<LoginRequest>()
             val user = transaction {
-                Users.selectAll().where { Users.email eq loginRequest.email }
+                Users.select(Users.id, Users.password)
+                    .where { Users.email eq loginRequest.email }
                     .map { Pair(it[Users.id].value, it[Users.password]) }
                     .singleOrNull()
             }

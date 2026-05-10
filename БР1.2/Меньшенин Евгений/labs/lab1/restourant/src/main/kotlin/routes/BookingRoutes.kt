@@ -10,8 +10,9 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
 import java.time.LocalDateTime
@@ -24,7 +25,9 @@ fun Route.bookingRoutes() {
                 val request = call.receive<CreateBookingRequest>()
 
                 val table = transaction {
-                    Tables.selectAll().where { Tables.id eq request.tableId }.singleOrNull()
+                    Tables.select(
+                        Tables.id, Tables.restaurantId, Tables.capacity,
+                    ).where { Tables.id eq request.tableId }.singleOrNull()
                 }
 
                 if (table == null) {
@@ -38,7 +41,7 @@ fun Route.bookingRoutes() {
                 }
 
                 val existingBookings = transaction {
-                    Bookings.selectAll().where {
+                    Bookings.select(Bookings.startTime, Bookings.endTime).where {
                         (Bookings.tableId eq request.tableId) and
                         (Bookings.bookingDate eq request.bookingDate) and
                         (Bookings.status eq "confirmed")
@@ -59,7 +62,9 @@ fun Route.bookingRoutes() {
                 }
 
                 val restaurant = transaction {
-                    Restaurants.selectAll().where { Restaurants.id eq table[Tables.restaurantId] }.singleOrNull()
+                    Restaurants.select(Restaurants.id, Restaurants.name)
+                        .where { Restaurants.id eq table[Tables.restaurantId] }
+                        .singleOrNull()
                 }
 
                 val id = transaction {
@@ -99,7 +104,12 @@ fun Route.bookingRoutes() {
                 val userId = call.principalUserId()!!
 
                 val bookings = transaction {
-                    Bookings.selectAll().where { Bookings.userId eq userId }
+                    Bookings.select(
+                        Bookings.id, Bookings.userId, Bookings.tableId,
+                        Bookings.bookingDate, Bookings.startTime, Bookings.endTime,
+                        Bookings.numberOfGuests, Bookings.specialRequests, Bookings.status,
+                    ).where { Bookings.userId eq userId }
+                        .orderBy(Bookings.id to SortOrder.DESC)
                         .map { row ->
                             BookingResponse(
                                 id = row[Bookings.id].value,
@@ -113,7 +123,6 @@ fun Route.bookingRoutes() {
                                 status = row[Bookings.status],
                             )
                         }
-                        .sortedByDescending { it.id }
                 }
 
                 call.respond(BookingsListResponse(bookings = bookings))
@@ -127,7 +136,11 @@ fun Route.bookingRoutes() {
                 }
 
                 val booking = transaction {
-                    Bookings.selectAll().where {
+                    Bookings.select(
+                        Bookings.id, Bookings.userId, Bookings.tableId,
+                        Bookings.bookingDate, Bookings.startTime, Bookings.endTime,
+                        Bookings.numberOfGuests, Bookings.specialRequests, Bookings.status,
+                    ).where {
                         (Bookings.id eq id) and (Bookings.userId eq userId)
                     }.map { row ->
                         BookingResponse(
@@ -160,7 +173,10 @@ fun Route.bookingRoutes() {
                 }
 
                 val booking = transaction {
-                    Bookings.selectAll().where {
+                    Bookings.select(
+                        Bookings.id, Bookings.userId, Bookings.tableId,
+                        Bookings.bookingDate, Bookings.numberOfGuests, Bookings.status,
+                    ).where {
                         (Bookings.id eq id) and (Bookings.userId eq userId)
                     }.singleOrNull()
                 }
@@ -180,7 +196,9 @@ fun Route.bookingRoutes() {
 
                 if (request.tableId != null && request.tableId != booking[Bookings.tableId]) {
                     val tbl = transaction {
-                        Tables.selectAll().where { Tables.id eq request.tableId }.singleOrNull()
+                        Tables.select(Tables.id, Tables.capacity)
+                            .where { Tables.id eq request.tableId }
+                            .singleOrNull()
                     }
                     if (tbl == null || tbl[Tables.capacity] < (request.guests ?: booking[Bookings.numberOfGuests])) {
                         call.respond(HttpStatusCode.BadRequest, ErrorResponse("Invalid table"))
@@ -201,7 +219,11 @@ fun Route.bookingRoutes() {
                 }
 
                 val updated = transaction {
-                    Bookings.selectAll().where { Bookings.id eq id }.map { row ->
+                    Bookings.select(
+                        Bookings.id, Bookings.userId, Bookings.tableId,
+                        Bookings.bookingDate, Bookings.startTime, Bookings.endTime,
+                        Bookings.numberOfGuests, Bookings.specialRequests, Bookings.status,
+                    ).where { Bookings.id eq id }.map { row ->
                         BookingResponse(
                             id = row[Bookings.id].value,
                             userId = row[Bookings.userId],
@@ -227,9 +249,10 @@ fun Route.bookingRoutes() {
                 }
 
                 val booking = transaction {
-                    Bookings.selectAll().where {
-                        (Bookings.id eq id) and (Bookings.userId eq userId)
-                    }.singleOrNull()
+                    Bookings.select(Bookings.id, Bookings.userId)
+                        .where {
+                            (Bookings.id eq id) and (Bookings.userId eq userId)
+                        }.singleOrNull()
                 }
 
                 if (booking == null) {
