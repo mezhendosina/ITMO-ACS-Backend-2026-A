@@ -486,7 +486,7 @@
     },
     {
       "key": "userPassword",
-      "value": "Postman123!"
+      "value": "{{USER_PASSWORD}}"
     }
   ]
 }

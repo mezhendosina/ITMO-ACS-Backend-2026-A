@@ -1,7 +1,5 @@
 package com.mezhendosina
 
-import com.auth0.jwt.JWT
-import com.auth0.jwt.algorithms.Algorithm
 import com.mezhendosina.auth.JwtConfig
 import com.mezhendosina.database.DatabaseFactory
 import com.mezhendosina.routes.authRoutes
@@ -29,7 +27,6 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
-import sun.security.util.KeyUtil.validate
 
 fun Application.configureSerialization() {
     install(ContentNegotiation) {
@@ -45,11 +42,7 @@ fun Application.configureSecurity() {
     install(Authentication) {
         jwt("auth-jwt") {
             realm = JwtConfig.REALM
-            verifier(
-                JWT.require(Algorithm.HMAC256("secret"))
-                    .withIssuer("restaurant-booking-api")
-                    .build()
-            )
+            verifier(JwtConfig.verifier)
             validate { credential ->
                 val userId = credential.payload.getClaim("userId")?.asInt()
                 if (userId != null) {
