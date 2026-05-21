@@ -4,8 +4,8 @@ object ServiceEnv {
     val serviceToken: String
         get() = System.getenv("SERVICE_TOKEN")?.takeIf { it.isNotBlank() } ?: "dev-service-token"
 
-    val redisUrl: String
-        get() = System.getenv("REDIS_URL")?.takeIf { it.isNotBlank() } ?: "redis://localhost:6379"
+    val kafkaBootstrapServers: String
+        get() = System.getenv("KAFKA_BOOTSTRAP_SERVERS")?.takeIf { it.isNotBlank() } ?: "localhost:9092"
 
     val serviceName: String
         get() = System.getenv("SERVICE_NAME") ?: "unknown"

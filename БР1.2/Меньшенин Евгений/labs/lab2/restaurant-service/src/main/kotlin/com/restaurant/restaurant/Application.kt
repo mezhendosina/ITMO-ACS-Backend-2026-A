@@ -3,7 +3,7 @@ package com.restaurant.restaurant
 import com.restaurant.shared.auth.ServiceEnv
 import com.restaurant.shared.database.DatabaseFactory
 import com.restaurant.shared.events.EventTypes
-import com.restaurant.shared.events.RedisEventBus
+import com.restaurant.shared.events.KafkaEventBus
 import com.restaurant.shared.plugins.configureCommonPlugins
 import com.restaurant.shared.plugins.configureInternalAuth
 import io.ktor.server.application.Application
@@ -20,7 +20,7 @@ fun Application.module() {
         Restaurants,
         MenuItems,
     )
-    val eventBus = RedisEventBus(ServiceEnv.redisUrl, ServiceEnv.serviceName)
+    val eventBus = KafkaEventBus(ServiceEnv.kafkaBootstrapServers, ServiceEnv.serviceName)
     eventBus.subscribe { event ->
         when (event.type) {
             EventTypes.REVIEW_CREATED, EventTypes.REVIEW_UPDATED, EventTypes.REVIEW_DELETED -> {

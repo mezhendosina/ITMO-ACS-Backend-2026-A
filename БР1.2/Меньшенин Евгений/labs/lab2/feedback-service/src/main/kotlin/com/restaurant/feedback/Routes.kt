@@ -1,7 +1,7 @@
 package com.restaurant.feedback
 
 import com.restaurant.shared.events.EventTypes
-import com.restaurant.shared.events.RedisEventBus
+import com.restaurant.shared.events.EventBus
 import com.restaurant.shared.events.reviewPayload
 import com.restaurant.shared.models.CreateReviewRequest
 import com.restaurant.shared.models.LegacyErrorResponse
@@ -35,7 +35,7 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDateTime
 
-fun Route.feedbackRoutes(clients: ServiceClients, eventBus: RedisEventBus) {
+fun Route.feedbackRoutes(clients: ServiceClients, eventBus: EventBus) {
     route("/api/reviews") {
         get("/restaurant/{restaurantId}") {
             val restaurantId = call.parameters["restaurantId"]?.toIntOrNull() ?: run {

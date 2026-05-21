@@ -1,7 +1,7 @@
 package com.restaurant.booking
 
 import com.restaurant.shared.events.EventTypes
-import com.restaurant.shared.events.RedisEventBus
+import com.restaurant.shared.events.EventBus
 import com.restaurant.shared.events.bookingPayload
 import com.restaurant.shared.models.ApiError
 import com.restaurant.shared.models.AvailabilityCheckRequest
@@ -34,7 +34,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
 import java.time.LocalDateTime
 
-fun Route.bookingRoutes(clients: ServiceClients, eventBus: RedisEventBus) {
+fun Route.bookingRoutes(clients: ServiceClients, eventBus: EventBus) {
     route("/api/bookings") {
         post {
             val user = call.requireUser() ?: run {

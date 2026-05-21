@@ -16,7 +16,7 @@ import com.restaurant.shared.models.RestaurantsListResponse
 import com.restaurant.shared.models.UpdateMenuItemRequest
 import com.restaurant.shared.models.UpdateRatingRequest
 import com.restaurant.shared.models.UpdateRestaurantRequest
-import com.restaurant.shared.events.RedisEventBus
+import com.restaurant.shared.events.EventBus
 import com.restaurant.shared.plugins.requireUser
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
@@ -42,7 +42,7 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDateTime
 
-fun Route.restaurantPublicRoutes(eventBus: RedisEventBus?) {
+fun Route.restaurantPublicRoutes(eventBus: EventBus?) {
     route("/api/restaurants") {
         get {
             val cuisine = call.request.queryParameters["cuisine"]

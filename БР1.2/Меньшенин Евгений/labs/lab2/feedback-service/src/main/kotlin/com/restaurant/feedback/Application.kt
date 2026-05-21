@@ -3,7 +3,7 @@ package com.restaurant.feedback
 import com.restaurant.shared.auth.ServiceEnv
 import com.restaurant.shared.database.DatabaseFactory
 import com.restaurant.shared.events.EventTypes
-import com.restaurant.shared.events.RedisEventBus
+import com.restaurant.shared.events.KafkaEventBus
 import com.restaurant.shared.plugins.configureCommonPlugins
 import com.restaurant.shared.plugins.configureInternalAuth
 import io.ktor.server.application.Application
@@ -23,7 +23,7 @@ fun Application.module() {
         Reviews,
     )
     val clients = ServiceClients()
-    val eventBus = RedisEventBus(ServiceEnv.redisUrl, ServiceEnv.serviceName)
+    val eventBus = KafkaEventBus(ServiceEnv.kafkaBootstrapServers, ServiceEnv.serviceName)
     eventBus.subscribe { event ->
         if (event.type == EventTypes.RESTAURANT_DELETED) {
             val restaurantId = event.payload["restaurantId"]?.jsonPrimitive?.content?.toIntOrNull() ?: return@subscribe

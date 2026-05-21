@@ -3,7 +3,7 @@ package com.restaurant.availability
 import com.restaurant.shared.auth.ServiceEnv
 import com.restaurant.shared.database.DatabaseFactory
 import com.restaurant.shared.events.EventTypes
-import com.restaurant.shared.events.RedisEventBus
+import com.restaurant.shared.events.KafkaEventBus
 import com.restaurant.shared.plugins.configureCommonPlugins
 import com.restaurant.shared.plugins.configureInternalAuth
 import io.ktor.server.application.Application
@@ -24,7 +24,7 @@ fun Application.module() {
         TableReservations,
     )
     val restaurantClient = RestaurantClient()
-    val eventBus = RedisEventBus(ServiceEnv.redisUrl, ServiceEnv.serviceName)
+    val eventBus = KafkaEventBus(ServiceEnv.kafkaBootstrapServers, ServiceEnv.serviceName)
     eventBus.subscribe { event ->
         when (event.type) {
             EventTypes.BOOKING_CREATED, EventTypes.BOOKING_CANCELLED -> {

@@ -76,6 +76,7 @@ flowchart LR
     AvailabilityDB[(availability_db)]
     BookingDB[(booking_db)]
     FeedbackDB[(feedback_db)]
+    Kafka[(Kafka\nrestaurant.events)]
 
     Client --> Gateway
 
@@ -98,8 +99,14 @@ flowchart LR
     Feedback --> Restaurant
     Availability --> Restaurant
 
-    Feedback -. restaurant.rating.updated .-> Restaurant
-    Booking -. booking.created / booking.cancelled .-> Availability
+    Booking -->|publish| Kafka
+    Feedback -->|publish| Kafka
+    Restaurant -->|publish| Kafka
+
+    Kafka -->|subscribe| Availability
+    Kafka -->|subscribe| Restaurant
+    Kafka -->|subscribe| Booking
+    Kafka -->|subscribe| Feedback
 
 ```
 
@@ -288,7 +295,7 @@ API Gateway не хранит бизнес-данные и не имеет со�
 
 ### 5.2. Асинхронное взаимодействие
 
-Асинхронное взаимодействие выполняется через брокер сообщений, например RabbitMQ или Kafka.
+Асинхронное взаимодействие выполняется через брокер сообщений **Kafka** (топик `restaurant.events`). Каждый сервис-подписчик использует отдельную consumer group (имя сервиса), поэтому все получатели видят одни и те же события.
 
 События:
 

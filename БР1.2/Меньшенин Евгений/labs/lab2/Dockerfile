@@ -1,5 +1,3 @@
-# Build all services sequentially in one stage (low peak memory).
-# Runtime targets copy only their installDist artifact.
 FROM gradle:8.11.1-jdk21 AS build
 WORKDIR /workspace
 
@@ -14,16 +12,7 @@ COPY booking-service ./booking-service
 COPY feedback-service ./feedback-service
 COPY api-gateway ./api-gateway
 
-ENV GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx1536m -XX:MaxMetaspaceSize=384m -Dfile.encoding=UTF-8 -Dorg.gradle.configuration-cache=false -Dorg.gradle.parallel=false -Dorg.gradle.caching=false -Dkotlin.daemon.jvmargs=-Xmx768m"
-
-RUN chmod +x gradlew && \
-    ./gradlew :shared:jar -x test --no-daemon --max-workers=1 && \
-    ./gradlew :identity-service:installDist -x test --no-daemon --max-workers=1 && \
-    ./gradlew :restaurant-service:installDist -x test --no-daemon --max-workers=1 && \
-    ./gradlew :availability-service:installDist -x test --no-daemon --max-workers=1 && \
-    ./gradlew :booking-service:installDist -x test --no-daemon --max-workers=1 && \
-    ./gradlew :feedback-service:installDist -x test --no-daemon --max-workers=1 && \
-    ./gradlew :api-gateway:installDist -x test --no-daemon --max-workers=1
+RUN chmod +x gradlew && ./gradlew installDist --no-daemon
 
 FROM eclipse-temurin:21-jre AS identity-service
 WORKDIR /app

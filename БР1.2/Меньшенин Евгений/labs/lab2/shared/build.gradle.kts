@@ -29,7 +29,7 @@ dependencies {
     api("org.postgresql:postgresql:42.7.5")
     api("com.h2database:h2:2.3.232")
 
-    implementation(libs.jedis)
+    implementation(libs.kafka.clients)
     implementation(libs.logback.classic)
     api("com.auth0:java-jwt:4.5.0")
     api("org.mindrot:jbcrypt:0.4")
