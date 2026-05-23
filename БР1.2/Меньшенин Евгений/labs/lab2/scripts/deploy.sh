@@ -4,7 +4,14 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-COMPOSE_FILE="docker-compoe.yml"
+if [[ -f ".env" ]]; then
+  set -a
+  # shellcheck source=/dev/null
+  source .env
+  set +a
+fi
+
+COMPOSE_FILE="docker-compose.yml"
 
 if [[ ! -f "${COMPOSE_FILE}" ]]; then
   echo "Compose file not found: ${COMPOSE_FILE}"
@@ -16,17 +23,22 @@ if [[ -z "${IMAGE_OWNER:-}" || -z "${IMAGE_TAG:-}" ]]; then
   exit 1
 fi
 
+DOCKER="docker"
+if ! docker info &>/dev/null && sudo docker info &>/dev/null 2>&1; then
+  DOCKER="sudo docker"
+fi
+
 if [[ -n "${REGISTRY_TOKEN:-}" ]]; then
   echo "==> Logging in to registry"
-  echo "${REGISTRY_TOKEN}" | docker login "${REGISTRY_HOST:-ghcr.io}" \
+  echo "${REGISTRY_TOKEN}" | ${DOCKER} login "${REGISTRY_HOST:-ghcr.io}" \
     -u "${REGISTRY_USER:-${GITHUB_ACTOR:-deploy}}" --password-stdin
 fi
 
 echo "==> Pulling images (lab2-*:${IMAGE_TAG} from ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_OWNER})"
-docker compose -f "${COMPOSE_FILE}" pull
+${DOCKER} compose -f "${COMPOSE_FILE}" pull
 
 echo "==> Starting containers"
-docker compose -f "${COMPOSE_FILE}" up -d --remove-orphans
+${DOCKER} compose -f "${COMPOSE_FILE}" up -d --remove-orphans
 
 echo "==> Service status"
-docker compose -f "${COMPOSE_FILE}" ps
+${DOCKER} compose -f "${COMPOSE_FILE}" ps

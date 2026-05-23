@@ -10,6 +10,7 @@ COPY restaurant-service ./restaurant-service
 RUN chmod +x gradlew && ./gradlew :restaurant-service:installDist --no-daemon
 
 FROM eclipse-temurin:21-jre
+LABEL org.opencontainers.image.description="Restaurant service — restaurant and menu management"
 WORKDIR /app
 COPY --from=build /workspace/restaurant-service/build/install/restaurant-service /app
 ENV SERVICE_NAME=restaurant-service

@@ -10,6 +10,7 @@ COPY identity-service ./identity-service
 RUN chmod +x gradlew && ./gradlew :identity-service:installDist --no-daemon
 
 FROM eclipse-temurin:21-jre
+LABEL org.opencontainers.image.description="Identity service — authentication and JWT issuance"
 WORKDIR /app
 COPY --from=build /workspace/identity-service/build/install/identity-service /app
 ENV SERVICE_NAME=identity-service

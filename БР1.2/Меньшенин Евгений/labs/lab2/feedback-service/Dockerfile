@@ -10,6 +10,7 @@ COPY feedback-service ./feedback-service
 RUN chmod +x gradlew && ./gradlew :feedback-service:installDist --no-daemon
 
 FROM eclipse-temurin:21-jre
+LABEL org.opencontainers.image.description="Feedback service — restaurant reviews and ratings"
 WORKDIR /app
 COPY --from=build /workspace/feedback-service/build/install/feedback-service /app
 ENV SERVICE_NAME=feedback-service
