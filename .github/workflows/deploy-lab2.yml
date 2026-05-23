@@ -53,8 +53,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ${{ env.LAB2_DIR }}
-          file: ${{ env.LAB2_DIR }}/Dockerfile
-          target: ${{ matrix.service }}
+          file: ${{ env.LAB2_DIR }}/${{ matrix.service }}/Dockerfile
           push: true
           tags: |
             ghcr.io/${{ steps.meta.outputs.image_owner }}/lab2-${{ matrix.service }}:${{ github.sha }}
