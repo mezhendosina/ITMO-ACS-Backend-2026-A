@@ -20,7 +20,7 @@ plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
 
-include(
+listOf(
     "shared",
     "identity-service",
     "restaurant-service",
@@ -28,4 +28,4 @@ include(
     "booking-service",
     "feedback-service",
     "api-gateway",
-)
+).filter { file(it).isDirectory }.forEach { include(it) }
