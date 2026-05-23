@@ -72,6 +72,7 @@ jobs:
       POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
       REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
       REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
     steps:
       - name: Checkout
@@ -86,7 +87,7 @@ jobs:
           missing=()
           [[ -z "${SSH_HOST}" ]] && missing+=("SSH_HOST")
           [[ -z "${SSH_USER}" ]] && missing+=("SSH_USER")
-          [[ -z "${secrets.SSH_PRIVATE_KEY}" ]] && missing+=("SSH_PRIVATE_KEY")
+          [[ -z "${SSH_PRIVATE_KEY}" ]] && missing+=("SSH_PRIVATE_KEY")
           [[ -z "${DEPLOY_PATH}" ]] && missing+=("DEPLOY_PATH")
           if (( ${#missing[@]} > 0 )); then
             echo "Missing required GitHub secrets: ${missing[*]}"
@@ -96,7 +97,7 @@ jobs:
       - name: Configure SSH
         run: |
           install -m 700 -d ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          echo "${SSH_PRIVATE_KEY}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -p "${SSH_PORT}" -H "${SSH_HOST}" >> ~/.ssh/known_hosts
 
