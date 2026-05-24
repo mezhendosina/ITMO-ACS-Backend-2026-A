@@ -1,4 +1,4 @@
-11package com.restaurant.gateway
+package com.restaurant.gateway
 
 import com.restaurant.shared.auth.JwtConfig
 import com.restaurant.shared.auth.ServiceEnv
