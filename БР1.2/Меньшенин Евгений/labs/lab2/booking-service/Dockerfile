@@ -10,6 +10,7 @@ COPY booking-service ./booking-service
 RUN chmod +x gradlew && ./gradlew :booking-service:installDist --no-daemon
 
 FROM eclipse-temurin:21-jre
+LABEL org.opencontainers.image.description="Booking service — table reservation creation and management"
 WORKDIR /app
 COPY --from=build /workspace/booking-service/build/install/booking-service /app
 ENV SERVICE_NAME=booking-service

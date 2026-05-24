@@ -10,6 +10,7 @@ COPY api-gateway ./api-gateway
 RUN chmod +x gradlew && ./gradlew :api-gateway:installDist --no-daemon
 
 FROM eclipse-temurin:21-jre
+LABEL org.opencontainers.image.description="API Gateway — single entry point and request routing"
 WORKDIR /app
 COPY --from=build /workspace/api-gateway/build/install/api-gateway /app
 ENV SERVICE_NAME=api-gateway

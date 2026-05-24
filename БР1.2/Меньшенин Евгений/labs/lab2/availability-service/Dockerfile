@@ -10,6 +10,7 @@ COPY availability-service ./availability-service
 RUN chmod +x gradlew && ./gradlew :availability-service:installDist --no-daemon
 
 FROM eclipse-temurin:21-jre
+LABEL org.opencontainers.image.description="Availability service — table slot availability and scheduling"
 WORKDIR /app
 COPY --from=build /workspace/availability-service/build/install/availability-service /app
 ENV SERVICE_NAME=availability-service

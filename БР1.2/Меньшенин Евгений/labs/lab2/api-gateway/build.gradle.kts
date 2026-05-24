@@ -6,6 +6,14 @@ plugins {
 }
 application { mainClass = "io.ktor.server.netty.EngineMain" }
 kotlin { jvmToolchain(21) }
+
+tasks.processResources {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from(rootProject.file("openapi/public-api.yaml")) {
+        into("openapi")
+    }
+}
+
 dependencies {
     implementation(project(":shared"))
     implementation(ktorLibs.server.config.yaml)
@@ -17,10 +25,4 @@ dependencies {
     implementation("io.ktor:ktor-client-core:3.4.0")
     implementation("io.ktor:ktor-client-cio:3.4.0")
     implementation("io.ktor:ktor-client-content-negotiation:3.4.0")
-}
-
-tasks.processResources {
-    from(rootProject.file("openapi/public-api.yaml")) {
-        into("openapi")
-    }
 }
