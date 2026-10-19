@@ -115,13 +115,13 @@ jobs:
         run: |
           scp -i ~/.ssh/deploy_key -P "${SSH_PORT}" \
             "${{ env.LAB2_DIR }}/docker-compose.yml" \
-            "${SSH_USER}@${SSH_HOST}:${DEPLOY_PATH}/docker-compose.yml" \
+            "${SSH_USER}@${SSH_HOST}:${DEPLOY_PATH}/docker-compose.yml"
           scp -i ~/.ssh/deploy_key -P "${SSH_PORT}" \
             "${{ env.LAB2_DIR }}/observability/config.alloy" \
-            "${SSH_USER}@${SSH_HOST}:${DEPLOY_PATH}/config.alloy" \
+            "${SSH_USER}@${SSH_HOST}:${DEPLOY_PATH}/config.alloy"
           scp -i ~/.ssh/deploy_key -P "${SSH_PORT}" \
             "${{ env.LAB2_DIR }}/observability/loki-config.yml" \
-            "${SSH_USER}@${SSH_HOST}:${DEPLOY_PATH}/loki-config.yml" \
+            "${SSH_USER}@${SSH_HOST}:${DEPLOY_PATH}/loki-config.yml"
           scp -i ~/.ssh/deploy_key -P "${SSH_PORT}" \
             "${{ env.LAB2_DIR }}/scripts/deploy.sh" \
             "${SSH_USER}@${SSH_HOST}:${DEPLOY_PATH}/scripts/deploy.sh"
