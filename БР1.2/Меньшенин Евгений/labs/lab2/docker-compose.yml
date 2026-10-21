@@ -247,13 +247,57 @@ services:
     networks:
       - loki-net
   alloy:
-    image: grafana/alloy:v1.0.0
+    image: grafana/alloy:v1.20.1
+    user: "0:0"
+    restart: unless-stopped
+    privileged: true
+    read_only: true
+    tmpfs:
+      - /tmp
     volumes:
-      - ./config.alloy:/etc/alloy/config.alloy
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    command: run --storage.path=/tmp/alloy-data /etc/alloy/config.alloy
+      - ./config.alloy:/etc/alloy/config.alloy:ro
+      - alloy-data:/var/lib/alloy
+      - /run/user/1001/docker.sock:/var/run/docker.sock:ro
+      - /run/user/1001/docker/containerd/containerd.sock:/run/containerd/containerd.sock:ro
+      - /:/rootfs:ro
+      - /sys:/sys:ro
+      - /home/restourant/.local/share/docker:/var/lib/docker:ro
+      - /home/restourant/.local/share/docker:/home/restourant/.local/share/docker:ro
+      - /home/restourant/.local/share/docker/containerd/daemon:/var/lib/containerd:ro
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy
+      - /etc/alloy/config.alloy
     depends_on:
       - loki
+      - prometheus
+    networks:
+      - loki-net
+
+  blackbox:
+    image: prom/blackbox-exporter:v0.29.0
+    restart: unless-stopped
+    command: ["--config.file=/etc/blackbox_exporter/config.yml"]
+    volumes:
+      - ./blackbox.yml:/etc/blackbox_exporter/config.yml:ro
+    networks:
+      - default
+      - loki-net
+
+  prometheus:
+    image: prom/prometheus:v3.13.4
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-remote-write-receiver
     networks:
       - loki-net
 
@@ -262,14 +306,19 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
     volumes:
       - grafana-data:/var/lib/grafana
+      - ./grafana-provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana-provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana-dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
       - loki
     networks:
       - loki-net
 
 volumes:
+  prometheus-data:
   loki-data:
   grafana-data:
+  alloy-data:
