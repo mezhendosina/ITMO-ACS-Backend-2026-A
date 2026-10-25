@@ -106,20 +106,26 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -p "${SSH_PORT}" -H "${SSH_HOST}" >> ~/.ssh/known_hosts
 
+      - name: Check rsync availability
+        run: |
+          command -v rsync
+          ssh -i ~/.ssh/deploy_key -p "${SSH_PORT}" "${SSH_USER}@${SSH_HOST}" \
+            'PATH="$HOME/.local/bin:$PATH" command -v rsync'
+
       - name: Ensure deploy directory exists
         run: |
           ssh -i ~/.ssh/deploy_key -p "${SSH_PORT}" "${SSH_USER}@${SSH_HOST}" \
             "mkdir -p '${DEPLOY_PATH}/scripts'"
 
-      - name: Upload compose and deploy script
+      - name: Upload compose, observability and deploy script
         run: |
-          scp -i ~/.ssh/deploy_key -P "${SSH_PORT}" \
+          rsync -a --protect-args -e "ssh -i ~/.ssh/deploy_key -p ${SSH_PORT}" \
+            --rsync-path='PATH="$HOME/.local/bin:$PATH" rsync' \
             "${{ env.LAB2_DIR }}/docker-compose.yml" \
-            "${SSH_USER}@${SSH_HOST}:${DEPLOY_PATH}/docker-compose.yml"
-          scp -i ~/.ssh/deploy_key -P "${SSH_PORT}" \
             "${{ env.LAB2_DIR }}/observability" \
-            "${SSH_USER}@${SSH_HOST}:${DEPLOY_PATH}"
-          scp -i ~/.ssh/deploy_key -P "${SSH_PORT}" \
+            "${SSH_USER}@${SSH_HOST}:${DEPLOY_PATH}/"
+          rsync -a --protect-args -e "ssh -i ~/.ssh/deploy_key -p ${SSH_PORT}" \
+            --rsync-path='PATH="$HOME/.local/bin:$PATH" rsync' \
             "${{ env.LAB2_DIR }}/scripts/deploy.sh" \
             "${SSH_USER}@${SSH_HOST}:${DEPLOY_PATH}/scripts/deploy.sh"
 
@@ -138,7 +144,8 @@ jobs:
             echo "DATABASE_USER=postgres"
             echo "DATABASE_PASSWORD=${POSTGRES_PASSWORD:-postgres}"
           } > /tmp/lab2-deploy.env
-          scp -i ~/.ssh/deploy_key -P "${SSH_PORT}" \
+          rsync -a --protect-args -e "ssh -i ~/.ssh/deploy_key -p ${SSH_PORT}" \
+            --rsync-path='PATH="$HOME/.local/bin:$PATH" rsync' \
             /tmp/lab2-deploy.env "${SSH_USER}@${SSH_HOST}:${DEPLOY_PATH}/.env"
 
       - name: Pull images and start stack
